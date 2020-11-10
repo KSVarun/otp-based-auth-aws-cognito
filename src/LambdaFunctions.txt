@@ -1,0 +1,96 @@
+//Define auth challenge lambda
+exports.handler = async(event, context, callback) => {
+    console.log(event);
+
+    // If user is not registered
+    if (event.request.userNotFound) {
+        event.response.issueToken = false;
+        event.response.failAuthentication = true;
+        throw new Error("User does not exist");
+    }
+    
+    // wrong OTP even After 3 sessions?
+    if (event.request.session.length >= 3 &&
+        event.request.session.slice(-1)[0].challengeResult === false) { 
+        event.response.issueToken = false;
+        event.response.failAuthentication = true;
+        throw new Error("Invalid OTP");
+    } // Correct OTP!
+    else if (event.request.session.length > 0 &&
+        event.request.session.slice(-1)[0].challengeResult === true) { 
+        event.response.issueTokens = true;
+        event.response.failAuthentication = false;
+    }
+    else { // not yet received correct OTP
+        event.response.issueTokens = false;
+        event.response.failAuthentication = false;
+        event.response.challengeName = 'CUSTOM_CHALLENGE';
+    }
+    return event;
+};
+
+
+//Verify auth challenge response lambda
+exports.handler = async (event) => {
+    const expectedAnswer = event.request.privateChallengeParameters.secretLoginCode;
+    if (event.request.challengeAnswer === expectedAnswer) {
+        event.response.answerCorrect = true;
+    } else {
+        event.response.answerCorrect = false;
+    }
+    return event;
+};
+
+//Pre signup lambda
+exports.handler = async (event, context) => {
+    event.response.autoConfirmUser = true;
+    event.response.autoVerifyPhone = true;
+    return event;
+};
+
+//Create auth challenge lambda
+const AWS = require('aws-sdk')
+exports.handler = async (event) => {
+    let secretLoginCode;
+    if (!event.request.session || !event.request.session.length) {
+
+        // Generate a new secret login code and send it to the user
+        secretLoginCode = Date.now().toString().slice(-4);
+        try {
+
+            if ('phone_number' in event.request.userAttributes) {
+
+                const params = {
+                    Message: secretLoginCode,
+                    PhoneNumber: event.request.userAttributes.phone_number,
+                };
+                // Create promise and SNS service object
+                console.log(params);
+                const publishTextPromise = new AWS.SNS({ apiVersion: '2010-03-31' }).publish(params).promise();
+                const result = await publishTextPromise
+                console.log("SMS DELIVERED")
+            }
+        } catch (error) {
+            // Handle SMS Failure   
+            console.log(error)
+        }
+    }
+    else {
+
+        // re-use code generated in previous challenge
+        const previousChallenge = event.request.session.slice(-1)[0];
+        secretLoginCode = previousChallenge.challengeMetadata.match(/CODE-(\d*)/)[1];
+    }
+
+    console.log(event.request.userAttributes);
+
+    // Add the secret login code to the private challenge parameters
+    // so it can be verified by the "Verify Auth Challenge Response" trigger
+    event.response.privateChallengeParameters = { secretLoginCode };
+
+    // Add the secret login code to the session so it is available
+    // in a next invocation of the "Create Auth Challenge" trigger
+    event.response.challengeMetadata = `CODE-${secretLoginCode}`;
+
+    return event;
+};
