@@ -9,8 +9,8 @@ import { ReactComponent as Work } from "./work.svg";
 
 Amplify.configure({
   Auth: {
-    userPoolId: "",
-    userPoolWebClientId: "",
+    userPoolId: process.env.REACT_APP_USER_POOL_ID,
+    userPoolWebClientId: process.env.REACT_APP_USER_POOL_WEBCLIENT_ID,
     authenticationFlowType: "CUSTOM_AUTH",
   },
 });
@@ -52,25 +52,22 @@ export default function App() {
     }
   }
   function handleSubmitOTP() {
-    debugger;
     setButtonLoading("fa fa-circle-o-notch fa-spin");
-    if (otp === "1234") {
-      setIsLoggedIn(true);
-      setLoading(false);
-      setButtonLoading("");
-    } else {
-      Auth.sendCustomChallengeAnswer(user, otp)
-        .then((response) => {
-          console.log("submitotp", response);
-          console.log("Signin Successful");
-          setIsLoggedIn(true);
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.log("Challenge Error", error);
-          setLoading(false);
-        });
-    }
+    Auth.sendCustomChallengeAnswer(user, otp)
+      .then((response) => {
+        console.log("submitotp", response);
+        console.log("Signin Successful");
+        setIsLoggedIn(true);
+        setLoading(false);
+        setCountryCode("");
+        setPhoneNumber("");
+        setOtp("");
+        setButtonLoading("");
+      })
+      .catch((error) => {
+        console.log("Challenge Error", error);
+        setLoading(false);
+      });
   }
 
   function Alert(props) {
@@ -79,7 +76,6 @@ export default function App() {
 
   function handleSignIn() {
     setButtonLoading("fa fa-circle-o-notch fa-spin");
-    debugger;
     let phone = phoneNumber;
     Auth.signIn(`${countryCode}${phone}`)
       .then((signInUser) => {
@@ -115,7 +111,6 @@ export default function App() {
   };
 
   function handleSignup() {
-    debugger;
     setButtonLoading("fa fa-circle-o-notch fa-spin");
     let phone = phoneNumber;
     Auth.signUp({
@@ -155,6 +150,7 @@ export default function App() {
           <Work />
           <div>
             <button className="signout-button" onClick={handleSignOut}>
+              <i class={buttonLoading} />
               Sign Out
             </button>
           </div>
