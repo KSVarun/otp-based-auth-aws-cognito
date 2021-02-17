@@ -1,34 +1,33 @@
-import React, { useEffect, useState } from "react";
-import Amplify, { Auth, Hub, Logger } from "aws-amplify";
-import Snackbar from "@material-ui/core/Snackbar";
-import MuiAlert from "@material-ui/lab/Alert";
-import CircularProgress from "@material-ui/core/CircularProgress";
+import React, { useEffect, useState } from 'react';
+import Amplify, { Auth } from 'aws-amplify';
+import Snackbar from '@material-ui/core/Snackbar';
+import MuiAlert from '@material-ui/lab/Alert';
+import CircularProgress from '@material-ui/core/CircularProgress';
 
-import "./App.css";
-import { ReactComponent as Work } from "./work.svg";
+import './App.css';
+import { ReactComponent as Work } from './work.svg';
 
 Amplify.configure({
   Auth: {
     userPoolId: process.env.REACT_APP_USER_POOL_ID,
     userPoolWebClientId: process.env.REACT_APP_USER_POOL_WEBCLIENT_ID,
-    authenticationFlowType: "CUSTOM_AUTH",
-  },
+    authenticationFlowType: 'CUSTOM_AUTH'
+  }
 });
 
 export default function App() {
   let [user, setUser] = useState(undefined);
-  let [phoneNumber, setPhoneNumber] = useState("");
-  let [countryCode, setCountryCode] = useState("");
-  let [otp, setOtp] = useState("");
+  let [phoneNumber, setPhoneNumber] = useState('');
+  let [countryCode, setCountryCode] = useState('');
+  let [otp, setOtp] = useState('');
   let [isLoggedIn, setIsLoggedIn] = useState(false);
-  let [signInUpClass, setSignInUpClass] = useState("");
+  let [signInUpClass, setSignInUpClass] = useState('');
   let [open, setSnackBarOpen] = useState(false);
   let [isLoading, setLoading] = useState(true);
-  let [buttonLoading, setButtonLoading] = useState("");
-  let [snackBarMessage, setSnackBarMessage] = useState("");
+  let [buttonLoading, setButtonLoading] = useState('');
+  let [snackBarMessage, setSnackBarMessage] = useState('');
 
   useEffect(() => {
-    console.log(isLoggedIn);
     Auth.currentSession()
       .then((response) => {
         if (response) {
@@ -46,64 +45,59 @@ export default function App() {
 
   function handleRenderSignInUpClass() {
     if (signInUpClass.length === 0) {
-      setSignInUpClass("right-panel-active");
+      setSignInUpClass('right-panel-active');
     } else {
-      setSignInUpClass("");
+      setSignInUpClass('');
     }
   }
   function handleSubmitOTP() {
-    setButtonLoading("fa fa-circle-o-notch fa-spin");
+    setButtonLoading('fa fa-circle-o-notch fa-spin');
     Auth.sendCustomChallengeAnswer(user, otp)
       .then((response) => {
-        console.log("submitotp", response);
-        console.log("Signin Successful");
         setIsLoggedIn(true);
         setLoading(false);
-        setCountryCode("");
-        setPhoneNumber("");
-        setOtp("");
-        setButtonLoading("");
+        setCountryCode('');
+        setPhoneNumber('');
+        setOtp('');
+        setButtonLoading('');
       })
       .catch((error) => {
-        console.log("Challenge Error", error);
         setLoading(false);
       });
   }
 
   function Alert(props) {
-    return <MuiAlert elevation={6} variant="filled" {...props} />;
+    return <MuiAlert elevation={6} variant='filled' {...props} />;
   }
 
   function handleSignIn() {
-    setButtonLoading("fa fa-circle-o-notch fa-spin");
+    setButtonLoading('fa fa-circle-o-notch fa-spin');
     let phone = phoneNumber;
     Auth.signIn(`${countryCode}${phone}`)
       .then((signInUser) => {
-        console.log(signInUser);
         setUser(signInUser);
-        setButtonLoading("");
+        setButtonLoading('');
       })
       .catch((error) => {
-        console.log("SignIn Error: ", error);
-        if (error.code === "UserLambdaValidationException") {
+        if (error.code === 'UserLambdaValidationException') {
           setSnackBarOpen(true);
-          setSnackBarMessage("Please sign up");
-          setButtonLoading("");
+          setSnackBarMessage('Please sign up');
+          setButtonLoading('');
         }
       });
   }
 
   function handleSignOut() {
-    setButtonLoading("fa fa-circle-o-notch fa-spin");
+    setButtonLoading('fa fa-circle-o-notch fa-spin');
     Auth.signOut().then(() => {
       setIsLoggedIn(false);
       setLoading(false);
-      setButtonLoading("");
+      setButtonLoading('');
     });
   }
 
   const handleClose = (event, reason) => {
-    if (reason === "clickaway") {
+    if (reason === 'clickaway') {
       return;
     }
 
@@ -111,21 +105,29 @@ export default function App() {
   };
 
   function handleSignup() {
-    setButtonLoading("fa fa-circle-o-notch fa-spin");
+    setButtonLoading('fa fa-circle-o-notch fa-spin');
     let phone = phoneNumber;
     Auth.signUp({
       username: `${countryCode}${phone}`,
-      password: Date.now().toString(),
+      password: Date.now().toString()
     })
       .then((signup) => {
-        console.log("SignUp Response: ", signup);
-        setButtonLoading("");
+        if (signup.userConfirmed) {
+          setSnackBarOpen(true);
+          setSnackBarMessage('Signup successful');
+          setTimeout(() => handleRenderSignInUpClass(), 1100);
+          if (isLoggedIn) {
+            setIsLoggedIn(false);
+          }
+        }
+        setButtonLoading('');
       })
       .catch((error) => {
-        if (error.code === "UsernameExistsException") {
+        if (error.code === 'UsernameExistsException') {
           setSnackBarOpen(true);
-          setSnackBarMessage("You are already signed up! Please Sign In");
-          setButtonLoading("");
+          setSnackBarMessage('You are already signed up! Please Sign In');
+          setTimeout(() => handleRenderSignInUpClass(), 1100);
+          setButtonLoading('');
         }
       });
   }
@@ -149,54 +151,54 @@ export default function App() {
         <div>
           <Work />
           <div>
-            <button className="signout-button" onClick={handleSignOut}>
+            <button className='signout-button' onClick={handleSignOut}>
               <i class={buttonLoading} />
               Sign Out
             </button>
           </div>
         </div>
       ) : (
-        <div className={`container ${signInUpClass}`} id="container">
-          <div className="form-container sign-up-container">
-            <form action="#" onSubmit={(e) => e.preventDefault()}>
+        <div className={`container ${signInUpClass}`} id='container'>
+          <div className='form-container sign-up-container'>
+            <form action='#' onSubmit={(e) => e.preventDefault()}>
               <h1>Create Account</h1>
               <input
-                type="text"
+                type='text'
                 onChange={handleCountryCodeChange}
                 value={countryCode}
-                placeholder="Country Code"
+                placeholder='Country Code'
               ></input>
               <input
-                type="text"
-                pattern="[0-9]*"
+                type='text'
+                pattern='[0-9]*'
                 onChange={handlePhoneNumberChange}
                 value={phoneNumber}
-                placeholder="Phone Number"
+                placeholder='Phone Number'
               ></input>
-              <button className="submit-button" onClick={handleSignup}>
+              <button className='submit-button' onClick={handleSignup}>
                 <i class={buttonLoading} /> Sign Up
               </button>
             </form>
           </div>
-          <div className="form-container sign-in-container">
-            <form action="#" onSubmit={(e) => e.preventDefault()}>
+          <div className='form-container sign-in-container'>
+            <form action='#' onSubmit={(e) => e.preventDefault()}>
               {!user ? (
                 <div>
                   <h1>Sign in</h1>
                   <input
-                    type="text"
+                    type='text'
                     onChange={handleCountryCodeChange}
                     value={countryCode}
-                    placeholder="Country Code"
+                    placeholder='Country Code'
                   ></input>
                   <input
-                    type="text"
-                    pattern="[0-9]*"
+                    type='text'
+                    pattern='[0-9]*'
                     onChange={handlePhoneNumberChange}
                     value={phoneNumber}
-                    placeholder="Phone Number"
+                    placeholder='Phone Number'
                   ></input>
-                  <button className="submit-button" onClick={handleSignIn}>
+                  <button className='submit-button' onClick={handleSignIn}>
                     <i class={buttonLoading} /> Sign In
                   </button>
                 </div>
@@ -204,40 +206,40 @@ export default function App() {
                 <div>
                   <h1>Submit OTP</h1>
                   <input
-                    type="text"
-                    pattern="[0-9]*"
+                    type='text'
+                    pattern='[0-9]*'
                     onChange={handleOTPChange}
                     value={otp}
-                    placeholder="OTP"
+                    placeholder='OTP'
                   ></input>
-                  <button className="submit-button" onClick={handleSubmitOTP}>
+                  <button className='submit-button' onClick={handleSubmitOTP}>
                     <i class={buttonLoading} /> Submit OTP
                   </button>
                 </div>
               )}
             </form>
           </div>
-          <div className="overlay-container">
-            <div className="overlay">
-              <div className="overlay-panel overlay-left">
+          <div className='overlay-container'>
+            <div className='overlay'>
+              <div className='overlay-panel overlay-left'>
                 <h1>Welcome Back!</h1>
                 <p>
                   To keep connected with us please login with your personal info
                 </p>
                 <button
-                  className="ghost"
-                  id="signIn"
+                  className='ghost'
+                  id='signIn'
                   onClick={handleRenderSignInUpClass}
                 >
                   Sign In
                 </button>
               </div>
-              <div className="overlay-panel overlay-right">
+              <div className='overlay-panel overlay-right'>
                 <h1>Hello, Friend!</h1>
                 <p>Enter your personal details and start journey with us</p>
                 <button
-                  className="ghost"
-                  id="signUp"
+                  className='ghost'
+                  id='signUp'
                   onClick={handleRenderSignInUpClass}
                 >
                   Sign Up
@@ -246,7 +248,7 @@ export default function App() {
             </div>
           </div>
           <Snackbar open={open} autoHideDuration={3000} onClose={handleClose}>
-            <Alert severity="success" onClose={handleClose}>
+            <Alert severity='success' onClose={handleClose}>
               {snackBarMessage}
             </Alert>
           </Snackbar>
